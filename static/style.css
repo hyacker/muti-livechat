@@ -1,0 +1,27 @@
+
+
+#chat {
+    float: left;
+
+}
+
+.hidden {
+    visibility: hidden;
+}
+
+#msgList {
+    border-width: 1px;
+    border: solid;
+    height:200px;
+    width:300px;
+    overflow:scroll;
+}
+
+#msgList ul li {
+    list-style-type: none;
+    margin-left: -32px;
+}
+
+#nickList {
+    float:left;
+}

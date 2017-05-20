@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tornado Chat Demo</title>
+</head>
+<body>
+
+<h3>{{ emsg }}</h3>
+<div id="loginbox">
+    <p>Room name: <input id="txtRoom" type="text" name="Room" value=""></p>
+	<p>Your nickname: <input id="txtNickname" type="text" name="Nickname" value=""></p>
+	<p><input id="btnLogin" type="button" name="Send" value="Start chat!" disabled="disabled"/></p>
+	</div>
+
+<script src="/static/zepto.min.js"></script>
+
+<script>
+
+    Zepto(function($){
+
+        $('#btnLogin').click(function() {
+            var h;
+            h = window.location.host  + '/chat.html/?room=' + $('#txtNickname').val() + '&nick=' + $('#txtNickname').val();
+            window.location = '/?room=' + $('#txtRoom').val() + '&nick=' + $('#txtNickname').val();
+        });
+
+        $("#txtRoom").keyup(function(event) { update_send(); } );
+        $("#txtNickname").keyup(function(event) { update_send(); } );
+
+    });
+
+    function update_send() {
+        if ( $("#txtRoom").val() != "" && $("#txtNickname").val() != "") {
+            $("#btnLogin").removeAttr("disabled");
+        } else {
+            $("#btnLogin").attr("disabled", "disabled");
+        }
+    };
+
+</script>
+</body>
+</html>

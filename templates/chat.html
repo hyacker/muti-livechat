@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tornado Chat Demo</title>
+    <link rel="stylesheet" type="text/css" href="/static/style.css" media="screen" />
+</head>
+<body class="hidden">
+    <h2>{{ room_name }}</h2>
+	<div id="chat" >
+		<div id="msgList"  ><ul></ul></div>
+		Your message:<br/> <input id="txtMsg" type="text" name="msg" value="">
+		<input type="button" id="btnSend" value="Send" disabled="disabled"/>
+	</div>
+    <div id="nickList" style=""></div>
+
+    <script src="/static/underscore-min.js"></script>
+    <script src="/static/zepto.min.js"></script>
+    <script>
+
+        var MAX_MSGS = 500;
+        var ws;
+
+        function ws_support() {
+            ws = 'WebSocket' in window || 'MozWebSocket' in window;
+            if ( typeof( ws ) == "undefined") { ws = false; }
+            return ws;
+        }
+
+        if ( ! ws_support() ) {
+
+            window.location = "/drop";
+        }
+
+        Zepto(function($){
+
+            init_ws();
+
+            window.onbeforeunload = function(e) {
+                ws.close()
+            };
+
+        })
+
+        function init_ws() {
+                var url;
+
+                url = "ws://"+window.location.host  + "/ws" ;
+                ws = new WebSocket( url );
+
+                ws.onopen  = function(event) {
+                    console.log("Socket opened");
+                    init_chat_ui();
+                    deleteCookie("ftc_cid")
+                }
+
+                ws.onclose = function(){
+                    console.log("WebSocket closed.");
+                }
+
+                ws.onerror  = function(event) {
+                    console.log("ERROR opening WebSocket.");
+                    $('body').html("<h1>ERROR connecting to chat server</h1><p>reload the page and try again</p>");
+                }
+
+                ws.onmessage = receive_message;
+
+            };
+
+            function init_chat_ui() {
+                $("#txtMsg").keyup(function(event) {
+                        if ( $(this).val() != "") {
+                            $("#btnSend").removeAttr("disabled");
+                            //if key is enter, send message and clean box
+                            if (event.which == 13) {
+                                send_text_msg($("#txtMsg").val());
+                                $("#btnSend").attr("disabled", "disabled");
+                            }
+                        } else {
+                            $("#btnSend").attr("disabled", "disabled");
+                        }
+                });
+                $("#btnSend").click(function() {
+                    send_text_msg($("#txtMsg").val())
+                    $("#btnSend").attr("disabled", "disabled");
+                });
+                $("body").removeClass("hidden");
+                $("#chat").show(400);
+                }
+
+            function send_text_msg(txt) {
+                text_msg_obj = {"msgtype": "text", "payload": txt , "sent_ts":Date.now()};
+                $("#txtMsg").val("");
+                $("#txtMsg").focus();
+                jmsg = JSON.stringify(text_msg_obj );
+                ws.send(jmsg);
+            };
+
+            function receive_message(wsevent) {
+                console.log("received message: "+wsevent.data )
+                msg_obj = $.parseJSON(wsevent.data);
+                switch (msg_obj.msgtype) {
+                    case "join": $("#msgList ul").append("<li><b>"+ msg_obj.username + msg_obj.payload + "</b></li>");
+                                 break;
+                    case "leave":$("#msgList ul").append("<li><b>"+msg_obj.username + msg_obj.payload + "</b></li>");
+                                  break;
+                    case "nick_list": $("#nickList").empty()
+                                      $("#nickList").append("<ul>");
+                                      nl = _.map(msg_obj.payload, function(nick){ return "<li>"+nick+"</li>"; })
+                                      ih =  _.reduce(nl, function(inner, li){ return inner + '\n'+ li; }, "");
+                                      $("#nickList").append(ih);
+                                      $("#nickList").append("</ul>");
+                                  break;
+                    default: //text message. If more than 100 lines in #msgList, leave just the last 100
+                             $("#msgList ul").append("<li><b>"+msg_obj.username+": </b>"+msg_obj.payload+"</li>");
+                }
+
+                msgs = $("#msgList ul li");
+                xm = msgs.length - MAX_MSGS;
+                if ( xm > 0 ) {
+                    msgs.slice(0,xm).remove()
+                }
+                $("#msgList").scrollTop($("#msgList")[0].scrollHeight);
+            }
+
+            function getCookie(name){
+                var pattern = RegExp(name + "=.[^;]*")
+                matched = document.cookie.match(pattern)
+                if(matched){
+                    var cookie = matched[0].split('=')
+                    return cookie[1]
+                }
+                return false
+            }
+            function deleteCookie( name, path, domain ) {
+                if ( getCookie( name ) ) document.cookie = name + "=" +
+                ( ( path ) ? ";path=" + path : "") +
+                ( ( domain ) ? ";domain=" + domain : "" ) +
+                ";expires=Thu, 01-Jan-1970 00:00:01 GMT";
+                }
+    </script>
+</body>
+</html>
